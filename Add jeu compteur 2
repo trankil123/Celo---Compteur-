@@ -1,0 +1,56 @@
+event CompteurIncrement(uint256 nouveauCompteur, address participant);
+event JeuTermine(uint256 compteurFinal);
+event JeuReinitialise();
+
+modifier onlyProprietaire() {
+    require(msg.sender == proprietaire, "Seulement le proprietaire peut faire cela");
+    _;
+}
+
+constructor() {
+    proprietaire = msg.sender;
+    dernierParticipant = address(0);
+}
+
+function incrementer() external {
+    require(!jeuTermine, "Le jeu est termine");
+    require(compteur < 100, "Le compteur a atteint la limite maximale");
+    require(msg.sender != dernierParticipant, "Vous ne pouvez pas incrementer deux fois de suite");
+
+    compteur++;
+    historique[compteur] = msg.sender;
+    participations[msg.sender]++;
+    dernierParticipant = msg.sender;
+
+    emit CompteurIncrement(compteur, msg.sender);
+
+    if (compteur == 100) {
+        jeuTermine = true;
+        emit JeuTermine(100);
+    }
+}
+
+function reinitialiser() external onlyProprietaire {
+    require(jeuTermine, "Le jeu n'est pas encore termine");
+    _reinitialiser();
+}
+
+function forcerReinitialisation() external {
+    _reinitialiser();
+}
+
+function _reinitialiser() internal {
+    compteur = 0;
+    dernierParticipant = address(0);
+    jeuTermine = false;
+    emit JeuReinitialise();
+}
+
+function obtenirInfosJeu() external view returns (
+    uint256 compteurActuel,
+    address dernierParticipantActuel,
+    bool estTermine
+) {
+    return (compteur, dernierParticipant, jeuTermine);
+}
+}
